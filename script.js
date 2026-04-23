@@ -1,4 +1,5 @@
 const video = document.getElementById('demoVideo');
+const narrationAudio = document.getElementById('narrationAudio');
 const startOverlay = document.getElementById('startOverlay');
 const startButton = document.getElementById('startButton');
 const replayButton = document.getElementById('replayButton');
@@ -44,97 +45,76 @@ const narrationCues = [
 let currentCueIndex = -1;
 let narrationEnabled = true;
 let userStarted = false;
-let selectedVoice = null;
-let narrationLoopGuard = null;
-
-function getPreferredVoice() {
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices.length) {
-    voiceStatus.textContent = 'Voice status: waiting for browser voices';
-    return null;
-  }
-
-  const preferredMatchers = [
-    v => v.lang && v.lang.toLowerCase().startsWith('en-gb') && /female|susan|serena|libby|hazel|samantha|kate/i.test(v.name),
-    v => v.lang && v.lang.toLowerCase().startsWith('en-gb'),
-    v => /uk|british|england/i.test(v.name),
-    v => v.lang && v.lang.toLowerCase().startsWith('en'),
-  ];
-
-  for (const matcher of preferredMatchers) {
-    const match = voices.find(matcher);
-    if (match) return match;
-  }
-
-  return voices[0] || null;
-}
-
-function refreshVoice() {
-  selectedVoice = getPreferredVoice();
-  if (!selectedVoice) return;
-  const label = `${selectedVoice.name} (${selectedVoice.lang || 'voice'})`;
-  const british = (selectedVoice.lang || '').toLowerCase().startsWith('en-gb') || /uk|british|england/i.test(selectedVoice.name);
-  voiceStatus.textContent = british
-    ? `Voice status: British voice loaded • ${label}`
-    : `Voice status: fallback voice loaded • ${label}`;
-}
-
-function speak(text) {
-  if (!narrationEnabled || !('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.voice = selectedVoice;
-  utterance.lang = selectedVoice?.lang || 'en-GB';
-  utterance.rate = 0.96;
-  utterance.pitch = 1;
-  utterance.volume = 1;
-  window.speechSynthesis.speak(utterance);
-}
 
 function updateCue(force = false) {
-  const time = video.currentTime;
+  const time = narrationAudio.currentTime || video.currentTime;
   const nextIndex = narrationCues.findIndex(cue => time >= cue.start && time < cue.end);
 
   if (nextIndex === -1) return;
   if (!force && nextIndex === currentCueIndex) return;
 
   currentCueIndex = nextIndex;
-  const cue = narrationCues[nextIndex];
-  captionText.textContent = cue.caption;
+  captionText.textContent = narrationCues[nextIndex].caption;
   pulseDot.style.background = narrationEnabled ? 'var(--accent-3)' : '#8796ac';
+}
 
-  if (narrationEnabled) {
-    speak(cue.caption);
+function syncVideoToNarration() {
+  if (!narrationEnabled) return;
+
+  const drift = Math.abs(video.currentTime - narrationAudio.currentTime);
+  if (drift > 0.35) {
+    video.currentTime = narrationAudio.currentTime;
   }
 }
 
-function startExperience() {
+async function startExperience() {
   userStarted = true;
   startOverlay.classList.add('hidden');
-  video.play().catch(() => {
-    // Some browsers still require interaction; controls remain visible.
-  });
+
+  narrationAudio.currentTime = 0;
+  video.currentTime = 0;
+
+  try {
+    await Promise.all([video.play(), narrationAudio.play()]);
+    voiceStatus.textContent = 'Narration status: MP3 playback active';
+  } catch {
+    voiceStatus.textContent = 'Narration status: click replay if playback was blocked';
+  }
+
   updateCue(true);
 }
 
-function replayNarration() {
+async function replayNarration() {
   currentCueIndex = -1;
+  narrationAudio.currentTime = 0;
   video.currentTime = 0;
-  video.play().catch(() => {});
+
+  try {
+    await Promise.all([video.play(), narrationAudio.play()]);
+  } catch {
+    // controls remain visible for manual retry
+  }
+
   updateCue(true);
 }
 
 function toggleNarration() {
   narrationEnabled = !narrationEnabled;
+
   if (!narrationEnabled) {
-    window.speechSynthesis.cancel();
+    narrationAudio.pause();
     toggleNarrationButton.textContent = 'Resume narration';
+    voiceStatus.textContent = 'Narration status: paused';
     captionText.textContent = 'Narration paused. Video continues inline.';
     pulseDot.style.background = '#8796ac';
-  } else {
-    toggleNarrationButton.textContent = 'Pause narration';
-    updateCue(true);
+    return;
   }
+
+  toggleNarrationButton.textContent = 'Pause narration';
+  voiceStatus.textContent = 'Narration status: MP3 playback active';
+  narrationAudio.currentTime = video.currentTime;
+  narrationAudio.play().catch(() => {});
+  updateCue(true);
 }
 
 function toggleVideoMute() {
@@ -147,38 +127,24 @@ replayButton.addEventListener('click', replayNarration);
 toggleNarrationButton.addEventListener('click', toggleNarration);
 toggleVideoMuteButton.addEventListener('click', toggleVideoMute);
 
-video.addEventListener('timeupdate', () => {
-  if (!userStarted) return;
+narrationAudio.addEventListener('timeupdate', () => {
+  if (!userStarted || !narrationEnabled) return;
+  syncVideoToNarration();
   updateCue(false);
 });
 
-video.addEventListener('ended', () => {
-  if (!userStarted) return;
-  currentCueIndex = -1;
+narrationAudio.addEventListener('ended', () => {
+  if (!userStarted || !narrationEnabled) return;
+  narrationAudio.currentTime = 0;
+  narrationAudio.play().catch(() => {});
 });
 
-video.addEventListener('play', () => {
-  if (!userStarted) return;
-  if (narrationLoopGuard) clearTimeout(narrationLoopGuard);
+video.addEventListener('timeupdate', () => {
+  if (!userStarted || narrationEnabled) return;
+  updateCue(false);
 });
 
-video.addEventListener('seeked', () => {
-  if (!userStarted) return;
-  updateCue(true);
+narrationAudio.addEventListener('loadedmetadata', () => {
+  captionText.textContent = `Ready to begin the ${Math.round(narrationAudio.duration)}-second narrated walkthrough.`;
+  voiceStatus.textContent = 'Narration status: ready (repo MP3)';
 });
-
-video.addEventListener('loadedmetadata', () => {
-  captionText.textContent = `Ready to begin the ${Math.round(video.duration)}-second narrated walkthrough.`;
-});
-
-window.speechSynthesis.onvoiceschanged = refreshVoice;
-refreshVoice();
-
-// Some browsers do not reliably fire `ended` on looped videos.
-setInterval(() => {
-  if (!userStarted) return;
-  if (video.currentTime < 0.6 && currentCueIndex > 1) {
-    currentCueIndex = -1;
-    updateCue(true);
-  }
-}, 500);

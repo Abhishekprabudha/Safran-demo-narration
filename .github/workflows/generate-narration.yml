@@ -1,0 +1,36 @@
+name: Generate narration audio
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - assets/narration.txt
+      - scripts/generate_narration.py
+      - .github/workflows/generate-narration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  generate-audio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install edge-tts
+
+      - name: Generate MP3
+        run: python scripts/generate_narration.py
+
+      - name: Commit updated narration asset
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: regenerate narration mp3'
+          file_pattern: assets/demo-narration.mp3

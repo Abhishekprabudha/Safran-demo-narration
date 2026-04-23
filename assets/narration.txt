@@ -1,0 +1,11 @@
+AIonOS opens with a live test-cell view of the LEAP-family engine and aligns that footage with the operating dashboard.
+
+The acoustic agent converts raw sound signatures into telemetry: RPM, exhaust gas temperature, oil temperature, resonance peaks, and quality score.
+
+A single executive snapshot then compresses the picture into diagnostic state, quality state, operations state, inspection pass rate, and remaining useful life.
+
+Risk is translated into action. The system estimates the next intervention window, surfaces confidence, and shows the most likely issue before a failure event occurs.
+
+The agent layer supports operational reasoning by exposing trends, root-cause prompts, and quick analytical queries for engineering and shop-floor teams.
+
+Taken together, the demo shows how Safran could combine acoustic diagnostics, operations control, and quality checks inside one AI-assisted decision flow.

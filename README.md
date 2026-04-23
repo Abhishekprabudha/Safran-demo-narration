@@ -1,30 +1,37 @@
 # Safran × AIonOS Engine AI Agent Demo
 
-A static HTML demo that plays the supplied Safran engine AI-agent video inline, loops it, and adds browser-based narration in a British accent where available.
+A static HTML demo that plays the supplied Safran engine AI-agent video inline, loops it, and plays a pre-generated narration MP3 from the repository.
 
 ## Files
 
 - `index.html` — main demo page
 - `styles.css` — visual styling
-- `script.js` — inline playback logic, narration cues, voice selection, loop sync
+- `script.js` — inline playback logic, narration cues, MP3 sync, loop behaviour
 - `assets/safran-agent-demo.webm` — demo video
+- `assets/narration.txt` — single source narration script
+- `assets/demo-narration.mp3` — generated narration audio used in the demo
+- `scripts/generate_narration.py` — MP3 generator script (Edge TTS voice)
+- `.github/workflows/generate-narration.yml` — workflow that regenerates and commits the narration MP3
 
 ## How to use
 
 1. Upload the full folder to any static host.
 2. Open `index.html` through the hosted URL.
 3. Click **Play demo with narration** once.
-4. The video will play inline and loop. Narration will restart with each loop.
+4. The video and MP3 narration will play inline and loop together.
 
-## Important browser note
+## Regenerate narration MP3
 
-Modern browsers usually block autoplay with audible narration until the viewer interacts once. That is why this demo begins with a clear start button.
+Update `assets/narration.txt`, then either:
 
-## British voice behaviour
+- Run locally:
 
-The page tries to use an `en-GB` voice from the browser's Speech Synthesis voices.
-- If an `en-GB` voice is present, it will be used.
-- If not, the page falls back to the nearest English voice available on the device/browser.
+  ```bash
+  pip install edge-tts
+  python scripts/generate_narration.py
+  ```
+
+- Or trigger the GitHub Actions workflow **Generate narration audio**, which regenerates `assets/demo-narration.mp3` and commits it automatically.
 
 ## Hosting options
 
