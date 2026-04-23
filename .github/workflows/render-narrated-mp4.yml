@@ -32,10 +32,15 @@ jobs:
 
       - name: Render narrated MP4
         run: |
+          # Crop the browser chrome from the source capture (top ribbon + URL bar).
+          # Format: crop=output_width:output_height:x:y
+          CROP_FILTER="crop=iw:ih-120:0:120"
+
           ffmpeg -y \
             -stream_loop -1 -i assets/safran-agent-demo.webm \
             -i assets/demo-narration.mp3 \
             -map 0:v:0 -map 1:a:0 \
+            -vf "${CROP_FILTER}" \
             -c:v libx264 -pix_fmt yuv420p -preset medium -crf 20 \
             -c:a aac -b:a 192k \
             -shortest \
