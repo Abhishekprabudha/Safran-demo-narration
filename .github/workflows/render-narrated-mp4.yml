@@ -24,6 +24,12 @@ jobs:
           test -f assets/safran-agent-demo.webm
           test -f assets/demo-narration.mp3
 
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version
+
       - name: Render narrated MP4
         run: |
           ffmpeg -y \
