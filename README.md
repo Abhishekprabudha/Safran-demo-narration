@@ -12,6 +12,7 @@ A static HTML demo that plays the supplied Safran engine AI-agent video inline, 
 - `assets/demo-narration.mp3` — generated narration audio used in the demo
 - `scripts/generate_narration.py` — MP3 generator script (Edge TTS voice)
 - `.github/workflows/generate-narration.yml` — workflow that regenerates and commits the narration MP3
+- `.github/workflows/render-narrated-mp4.yml` — workflow that muxes the WebM demo video and MP3 narration into `assets/safran-agent-demo-narrated.mp4`
 
 ## How to use
 
@@ -32,6 +33,15 @@ Update `assets/narration.txt`, then either:
   ```
 
 - Or trigger the GitHub Actions workflow **Generate narration audio**, which regenerates `assets/demo-narration.mp3` and commits it automatically.
+
+## Render an MP4 with synced narration
+
+Trigger the GitHub Actions workflow **Render narrated MP4**. It will:
+
+1. Read `assets/safran-agent-demo.webm` and `assets/demo-narration.mp3`.
+2. Loop the video input as needed to match narration timing.
+3. Export `assets/safran-agent-demo-narrated.mp4` using H.264 video + AAC audio.
+4. Commit the MP4 back to the repository when it changes.
 
 ## Hosting options
 

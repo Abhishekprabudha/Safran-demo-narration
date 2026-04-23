@@ -1,0 +1,49 @@
+name: Render narrated MP4
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - assets/safran-agent-demo.webm
+      - assets/demo-narration.mp3
+      - .github/workflows/render-narrated-mp4.yml
+
+permissions:
+  contents: write
+
+jobs:
+  render-mp4:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify media inputs
+        run: |
+          test -f assets/safran-agent-demo.webm
+          test -f assets/demo-narration.mp3
+
+      - name: Render narrated MP4
+        run: |
+          ffmpeg -y \
+            -stream_loop -1 -i assets/safran-agent-demo.webm \
+            -i assets/demo-narration.mp3 \
+            -map 0:v:0 -map 1:a:0 \
+            -c:v libx264 -pix_fmt yuv420p -preset medium -crf 20 \
+            -c:a aac -b:a 192k \
+            -shortest \
+            assets/safran-agent-demo-narrated.mp4
+
+      - name: Commit rendered MP4
+        run: |
+          if git diff --quiet -- assets/safran-agent-demo-narrated.mp4; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/safran-agent-demo-narrated.mp4
+          git commit -m "chore: render narrated mp4"
+          git push
